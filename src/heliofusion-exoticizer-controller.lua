@@ -195,16 +195,13 @@ function heliofusionExoticizerController:new(
 
     self.stateMachine.data.outputs = nil
     self.stateMachine.data.craftFailCount = 0
+    self.stateMachine.data.currentRecipe = nil
     self.stateMachine.data.time = computer.uptime()
     self.stateMachine.data.notifyLongIdle = false
     self.stateMachine.data.notifyLongEndTime = false
 
     self:fillDatabase(self.magmatterMode and "Magmatter" or "Gluon")
     self:clearPattern()
-
-    while self:tryCancelFakeRecipe() == false do
-      os.sleep(0.1)
-    end
 
     self.stateMachine.states.idle = self.stateMachine:createState("Idle")
     self.stateMachine.states.idle.init = function()
@@ -268,23 +265,29 @@ function heliofusionExoticizerController:new(
       self.stateMachine.data.craftFailCount = 0
     end
     self.stateMachine.states.requestFakePattern.update = function()
-      if self:getFreeCpusCount() >= 1 then
-        if self:requestFakeRecipe() == true or self:hasFakeRecipe() == true then
+      --- No Recipe is currently running so start one
+      if self.stateMachine.data.currentRecipe == nil then
+        self.stateMachine.data.currentRecipe = self:requestFakeRecipe()
+      end
+
+      --- Check current recipe status
+      if self.stateMachine.data.isComputing() == true then
+        os.sleep(1)
+      elseif self.stateMachine.data.currentRecipe.isDone() == true then
+        self.stateMachine.data.craftFailCount = 0
+        self.stateMachine.data.currentRecipe = nil
+        self.stateMachine:setState(self.stateMachine.states.waitEnd)
+      elseif self.stateMachine.data.currentRecipe.hasFailed() == true then
+        if self.stateMachine.data.craftFailCount >= 3 then
           self.stateMachine.data.craftFailCount = 0
-          self.stateMachine:setState(self.stateMachine.states.waitEnd)
+          self.stateMachine.data.errorMessage = "Cant request craft: "..self.fakeRecipeName.." because "..self.stateMachine.data.currentRecipe.result[0].reason
+          self.stateMachine.data.currentRecipe = nil
+          self.stateMachine:setState(self.stateMachine.states.error)
+          return
         else
-          if self.stateMachine.data.craftFailCount >= 3 then
-            self.stateMachine.data.craftFailCount = 0
-            self.stateMachine.data.errorMessage = "Cant request craft: "..self.fakeRecipeName
-            self.stateMachine:setState(self.stateMachine.states.error)
-            return
-          else
-            self.stateMachine.data.craftFailCount = self.stateMachine.data.craftFailCount + 1
-            os.sleep(1)
-          end
+          self.stateMachine.data.craftFailCount = self.stateMachine.data.craftFailCount + 1
+          os.sleep(1)
         end
-      else
-        os.sleep(2)
       end
     end
 
@@ -298,11 +301,8 @@ function heliofusionExoticizerController:new(
 
       local diff = math.ceil(computer.uptime() - self.stateMachine.data.waitEndTime)
 
-      if itemsCount ~= 0 then 
-        while self:tryCancelFakeRecipe() == false do
-          os.sleep(0.1)
-        end
-
+      if itemsCount ~= 0 then
+        --- Craft is finished, go to idle
         self.stateMachine.data.outputs = nil
         self.stateMachine:setState(self.stateMachine.states.idle)
       elseif diff > 240 and self.stateMachine.data.notifyLongEndTime == false then
@@ -313,10 +313,6 @@ function heliofusionExoticizerController:new(
 
     self.stateMachine.states.error = self.stateMachine:createState("Error")
     self.stateMachine.states.error.init = function()
-      while self:tryCancelFakeRecipe() == false do
-        os.sleep(0.1)
-      end
-
       event.push("log_error", self.stateMachine.data.errorMessage)
       event.push("log_info","&red;Press Enter to confirm")
 
@@ -389,7 +385,7 @@ function heliofusionExoticizerController:new(
     local count = 0
 
     for key, value in pairs(outputs) do
-      if self.magmatterMode == true then 
+      if self.magmatterMode == true then
         if key == "Spatially Enlarged Fluid" or key == "Tachyon Rich Temporal Fluid" then
           count = value.count
         else
@@ -472,74 +468,11 @@ function heliofusionExoticizerController:new(
     end
   end
 
-  ---Get free cpus
-  ---@return integer
-  ---@private
-  function obj:getFreeCpusCount()
-		local cpus = self.inputMeInterfaceProxy.getCpus()
-    local freeCpusCount = 0
-
-    for _, value in pairs(cpus) do
-      if value.cpu.isBusy() == false then
-        freeCpusCount = freeCpusCount + 1
-      end
-    end
-
-    return freeCpusCount
-	end
-
   ---Request fake pattern
   ---@private
   function obj:requestFakeRecipe()
     local recipe = obj.inputMeInterfaceProxy.getCraftables({label = self.fakeRecipeName})[1]
-    local craft = recipe.request(1)
-
-    while craft.isComputing() == true do
-      os.sleep(0.1)
-    end
-
-    return craft.hasFailed() == false
-  end
-
-  ---Try cancel craft of the faker pattern
-  ---@private
-  function obj:tryCancelFakeRecipe()
-    local cpus = self.inputMeInterfaceProxy.getCpus()
-
-    for _, value in pairs(cpus) do
-      if value.cpu.isBusy() == true then
-        local output = value.cpu.finalOutput()
-
-        if output == nil then
-          return false
-        end
-
-        if output.label == self.fakeRecipeName then
-          local isCanceled = value.cpu.cancel()
-          return isCanceled
-        end
-      end
-    end
-
-    return true
-  end
-
-  ---Check if craft of the fake pattern is failed
-  ---@private
-  function obj:hasFakeRecipe()
-    local cpus = self.inputMeInterfaceProxy.getCpus()
-
-    for _, value in pairs(cpus) do
-      if value.cpu.isBusy() == true then
-        local output = value.cpu.finalOutput()
-
-        if output ~= nil and output.label == self.fakeRecipeName then
-          return true
-        end
-      end
-    end
-
-    return false
+    return recipe.request(1)
   end
 
   setmetatable(obj, self)
