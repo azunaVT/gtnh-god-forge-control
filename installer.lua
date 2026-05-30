@@ -8,7 +8,7 @@ local internet = require("internet")
 ---@field description string
 ---@field url string
 
-local repositoryUrl = "https://github.com/azunaVT/gtnh-god-forge-control/tarball/main"
+local latestRelease = "https://github.com/azunaVT/gtnh-god-forge-control/releases/latest/download/GodForgeControl.tar"
 local tarManUrl = "https://raw.githubusercontent.com/mpmxyz/ocprograms/master/usr/man/tar.man"
 local tarBinUrl = "https://raw.githubusercontent.com/mpmxyz/ocprograms/master/home/bin/tar.lua"
 
@@ -54,6 +54,19 @@ local function downloadTarUtility()
   shell.execute("wget -fq "..tarBinUrl)
 end
 
+--- Remove previous installation
+local function removePreviousInstallation()
+  term.write("Previous installation found. Do you want to remove it? [y/n]\n")
+  term.write("===>")
+  local userInput = io.read()
+  if string.lower(userInput) == "y" then
+    shell.execute("rm main.lua")
+    term.write("Previous installation removed\n")
+  else
+    error("Installation aborted by user")
+  end
+end
+
 ---Download and install the God Forge Control script
 ---@param url string
 local function downloadProgram(url)
@@ -68,19 +81,6 @@ local function downloadProgram(url)
   shell.execute("rm program.tar")
 
   term.write("Installation complete\n")
-end
-
---- Remove previous installation
-local function removePreviousInstallation()
-  term.write("Previous installation found. Do you want to remove it? [y/n]\n")
-  term.write("===>")
-  local userInput = io.read()
-  if string.lower(userInput) == "y" then
-    shell.execute("rm -rf main.lua lib/ src/ docs/ version.lua installer.lua")
-    term.write("Previous installation removed\n")
-  else
-    error("Installation aborted by user")
-  end
 end
 
 ---Make auto run
@@ -111,7 +111,7 @@ local function main()
   shell.setWorkingDirectory("/home")
 
   makeAutoRun()
-  downloadProgram(repositoryUrl)
+  downloadProgram(latestRelease)
 end
 
 main()
