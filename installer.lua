@@ -57,6 +57,10 @@ end
 ---Download and install the God Forge Control script
 ---@param url string
 local function downloadProgram(url)
+  if filesystem.exists("main.lua") then
+    removePreviousInstallation()
+  end
+
   term.write("Installing GTNH God Forge Control script...\n")
 
   shell.execute("wget -fq "..url.." program.tar")
@@ -64,6 +68,19 @@ local function downloadProgram(url)
   shell.execute("rm program.tar")
 
   term.write("Installation complete\n")
+end
+
+--- Remove previous installation
+local function removePreviousInstallation()
+  term.write("Previous installation found. Do you want to remove it? [y/n]\n")
+  term.write("===>")
+  local userInput = io.read()
+  if string.lower(userInput) == "y" then
+    shell.execute("rm -rf main.lua lib/ src/ docs/ version.lua installer.lua")
+    term.write("Previous installation removed\n")
+  else
+    error("Installation aborted by user")
+  end
 end
 
 ---Make auto run
