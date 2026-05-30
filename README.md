@@ -11,9 +11,9 @@
 
 ## Information
 
-The program is designed to automate the production of Degenerate Quark Gluon Plasma 
+The program is designed to automate the production of Degenerate Quark Gluon Plasma
 and Molten Magmatter in the Heliofusion Exoticizer.
-From the features, the program itself orders plasmas that are not enough, so you will 
+From the features, the program itself orders plasmas that are not enough, so you will
 not need to put a bunch of ME Level Maintainers.
 It is also possible to send messages to Discord about out of service situations.
 And there is also the possibility of auto update at startup.
@@ -35,7 +35,7 @@ And there is also the possibility of auto update at startup.
 <a id="installation"></a>
 
 > [!CAUTION]
-> If you are using 8 java, the installer will not work for you. 
+> If you are using 8 java, the installer will not work for you.
 > The only way to install the program is to manually transfer it to your computer.
 > The problem is on the java side.
 
@@ -53,8 +53,8 @@ Install the basic Open OS on your computer.
 Then run the command to start the installer.
 
 ```shell
-pastebin run ESUAMAGx
-``` 
+pastebin run jT6XGBUF
+```
 
 Then select the God Forge Control program in the installer.
 If you wish you can add the program to auto download, for manual start write a command.
@@ -63,7 +63,7 @@ If you wish you can add the program to auto download, for manual start write a c
 main
 ```
 
-> [!NOTE]  
+> [!NOTE]
 > For convenient configuration you can use the web configurator.
 > [GTNH-OC-Web-Configurator](https://navatusein.github.io/GTNH-OC-Web-Configurator/#/configurator?url=https%3A%2F%2Fraw.githubusercontent.com%2FNavatusein%2FGTNH-OC-God-Forge-Control%2Fmain%2Fconfig-descriptor.yml)
 
@@ -71,8 +71,8 @@ main
 
 ## Setup
 
-> [!NOTE]  
-> For easy copying of addresses, use "Analyzer" from the OpenComputers mod. Right-click on the component, its address will be written in the chat. 
+> [!NOTE]
+> For easy copying of addresses, use "Analyzer" from the OpenComputers mod. Right-click on the component, its address will be written in the chat.
 > If you click on it, it will be copied.
 >
 > <img src="docs/analyzer.png" alt="Analyzer" width="120"/>
@@ -89,51 +89,51 @@ To build a setup, you will need:
 > [!CAUTION]
 > Be sure to use Database Upgrade (Tier 3).
 
-For the program to work, you need to make a simple setup. On the Heliofusion Exoticizer module, 
-it is necessary to connect the subnetwork that will receive dusts and liquids further it will 
-be called the output subnetwork (On the pictures it is purple). It consists of “ME Dual Interface”, 
-“Output Hatch (ME)”, “Output Bus (ME)”, “ME Fluid Storage Bus” and “ME Drive” where there are two 
-disks for liquids of 5 types and one disk for dust. The “ME Fluid Storage Bus” is configured in input 
-only mode to send “Degenerate Quark Gluon Plasma” and “Molten Magmatter” to the input subnet 
-(more about it later). We also have another subnet (In this guide we will consider a setup where 
-the input subnet is our main subnet, but it is possible to separate them) it consists of “ME IO Port”, 
-“ME Dual Interface” and “ME Fluid Level Emitter”. From now on in the guide I will refer to it as the 
+For the program to work, you need to make a simple setup. On the Heliofusion Exoticizer module,
+it is necessary to connect the subnetwork that will receive dusts and liquids further it will
+be called the output subnetwork (On the pictures it is purple). It consists of “ME Dual Interface”,
+“Output Hatch (ME)”, “Output Bus (ME)”, “ME Fluid Storage Bus” and “ME Drive” where there are two
+disks for liquids of 5 types and one disk for dust. The “ME Fluid Storage Bus” is configured in input
+only mode to send “Degenerate Quark Gluon Plasma” and “Molten Magmatter” to the input subnet
+(more about it later). We also have another subnet (In this guide we will consider a setup where
+the input subnet is our main subnet, but it is possible to separate them) it consists of “ME IO Port”,
+“ME Dual Interface” and “ME Fluid Level Emitter”. From now on in the guide I will refer to it as the
 input subnet (It is green in the pictures).
 
-In the schematic we have 2 adapters connected to volume subnets, we also have a transposer 
-to flip items from the output subnet to the input subnet. Also in one of the adapters we have 
+In the schematic we have 2 adapters connected to volume subnets, we also have a transposer
+to flip items from the output subnet to the input subnet. Also in one of the adapters we have
 “Database Upgrade (Tier 3)”.
 
-In the input subnet “ME Dual Interface” stands in the environment of “Inventory Relay” 
-which are directed to the quadruple input hatch. 
+In the input subnet “ME Dual Interface” stands in the environment of “Inventory Relay”
+which are directed to the quadruple input hatch.
 
 > [!CAUTION]
 > To work properly, you need to put any liquid сraft template (which is pink) in the interface in input subnet.
 
-The idea is that the program looks at what plasmas the machine wants and encodes a fake 
-recipe with the right plasmas and in the right quantity, then orders this template. 
-This approach makes it easy to transfer plasmas from AE to the machine and allows 
+The idea is that the program looks at what plasmas the machine wants and encodes a fake
+recipe with the right plasmas and in the right quantity, then orders this template.
+This approach makes it easy to transfer plasmas from AE to the machine and allows
 you to craft plasmas that are not enough.
 
 ![Front setup](/docs/front-setup.png)
 
-You also need to adjust the “ME Fluid Level Emitter” to signal when the 
-“Degenerate Quark Gluon Plasma” or “Molten Magmatter” is less than the 
+You also need to adjust the “ME Fluid Level Emitter” to signal when the
+“Degenerate Quark Gluon Plasma” or “Molten Magmatter” is less than the
 desired amount, or you can put a lever and control it manually.
 
 ![Side setup](/docs/side-setup.png)
 
-As for the bones of the input subnet, it is very simple. 
-It must have a number of CPUs greater than the number of setups connected to it. It is 
+As for the bones of the input subnet, it is very simple.
+It must have a number of CPUs greater than the number of setups connected to it. It is
 also important that it has a “Fluid Discretizer” and all CPUs have a “Crafting Monitor”.
 
 > [!CAUTION]
 > To work, all CPUs must be equipped with a “Crafting Monitor“
 > In cases where the input subnet is your main network, all CPUs must be equipped with a “Crafting Monitor“.
 
-If, on the other hand, you want to separate the entry network from the main network. 
-Then you need to show all 80+ plasmas in the input subnet and make the output of unnecessary 
-dust and liquids from the input subnet. And make “Spatially Enlarged Fluid” and “Tachyon Rich 
+If, on the other hand, you want to separate the entry network from the main network.
+Then you need to show all 80+ plasmas in the input subnet and make the output of unnecessary
+dust and liquids from the input subnet. And make “Spatially Enlarged Fluid” and “Tachyon Rich
 Temporal Fluid” storage in it.
 
 ![Main ME](/docs/main-me.png)
@@ -143,7 +143,7 @@ Temporal Fluid” storage in it.
 
 ## Configuration
 
-> [!NOTE]  
+> [!NOTE]
 > For convenient configuration you can use the web configurator.
 > [GTNH-OC-Web-Configurator](https://navatusein.github.io/GTNH-OC-Web-Configurator/#/configurator?url=https%3A%2F%2Fraw.githubusercontent.com%2FNavatusein%2FGTNH-OC-God-Forge-Control%2Fmain%2Fconfig-descriptor.yml)
 
@@ -183,8 +183,8 @@ logger = loggerLib:newFormConfig({
 }),
 ```
 
-In the `magmatterMode` field you specify program mode. If it `true` program will in be in the magmatter craft mode. 
-If it `false` program will in be in the gluon plasma craft mode. 
+In the `magmatterMode` field you specify program mode. If it `true` program will in be in the magmatter craft mode.
+If it `false` program will in be in the gluon plasma craft mode.
 
 In the `outputMeInterfaceAddress` field you specify address of the me interface witch connected to output subnet.
 
