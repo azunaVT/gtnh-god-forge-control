@@ -73,8 +73,6 @@ local function makeAutoRun()
 
   local userInput = io.read()
 
-  term.clear()
-
   if string.lower(userInput) == "y" then
     local file = assert(io.open("/home/.shrc", "w"))
     file:write("main")
@@ -90,9 +88,6 @@ end
 local function main()
   isOsInstalled()
   isGitHubAvailable()
-
-  term.clear()
-  term.write("Welcome to Navatusein's programs installer\n\n")
 
   downloadTarUtility()
 
