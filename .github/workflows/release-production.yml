@@ -2,8 +2,8 @@ name: Release Production
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*.*' # Trigger on version tags like v1.0
 
 jobs:
   build:
