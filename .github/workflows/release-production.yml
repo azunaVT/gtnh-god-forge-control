@@ -2,8 +2,8 @@ name: Release Production
 
 on:
   push:
-    tags-ignore:
-      - "dev-*"
+    branches:
+      - main
 
 jobs:
   build:
@@ -26,7 +26,7 @@ jobs:
         release_name: Release ${{ github.ref_name }}
         draft: false
         prerelease: false
-    
+
     - name: Upload Release Asset
       uses: actions/upload-release-asset@v1
       env:
