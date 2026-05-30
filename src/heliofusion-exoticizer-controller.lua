@@ -263,21 +263,27 @@ function heliofusionExoticizerController:new(
     self.stateMachine.states.requestFakePattern = self.stateMachine:createState("Request Fake Pattern")
     self.stateMachine.states.requestFakePattern.init = function()
       self.stateMachine.data.craftFailCount = 0
+      if self.stateMachine.data.currentRecipe == nil then
+        self.stateMachine.data.currentRecipe = self:requestFakeRecipe()
+        event.push("debug", "Requested craft for fake pattern: "..tostring(self.stateMachine.data.currentRecipe))
+      end
     end
     self.stateMachine.states.requestFakePattern.update = function()
       if self.stateMachine.data.currentRecipe == nil then
-        self.stateMachine.data.currentRecipe = self:requestFakeRecipe()
-      elseif self.stateMachine.data.currentRecipe.isComputing() == true then
+        self.stateMachine.data.errorMessage = "No craft was requested"
+        self.stateMachine:setState(self.stateMachine.states.error)
+        return
+      end
+
+      if self.stateMachine.data.currentRecipe.isComputing() == true then
         os.sleep(1)
       elseif self.stateMachine.data.currentRecipe.isDone() == true then
         self.stateMachine.data.craftFailCount = 0
-        self.stateMachine.data.currentRecipe = nil
         self.stateMachine:setState(self.stateMachine.states.waitEnd)
       elseif self.stateMachine.data.currentRecipe.hasFailed() == true then
         if self.stateMachine.data.craftFailCount >= 3 then
           self.stateMachine.data.craftFailCount = 0
           self.stateMachine.data.errorMessage = "Cant request craft: "..self.fakeRecipeName.." because "..self.stateMachine.data.currentRecipe.result[0].reason
-          self.stateMachine.data.currentRecipe = nil
           self.stateMachine:setState(self.stateMachine.states.error)
           return
         else
@@ -300,6 +306,7 @@ function heliofusionExoticizerController:new(
       if itemsCount ~= 0 then
         --- Craft is finished, go to idle
         self.stateMachine.data.outputs = nil
+        self.stateMachine.data.currentRecipe = nil
         self.stateMachine:setState(self.stateMachine.states.idle)
       elseif diff > 240 and self.stateMachine.data.notifyLongEndTime == false then
         self.stateMachine.data.notifyLongEndTime = true
