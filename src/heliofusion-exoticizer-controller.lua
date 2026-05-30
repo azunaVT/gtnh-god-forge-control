@@ -265,13 +265,9 @@ function heliofusionExoticizerController:new(
       self.stateMachine.data.craftFailCount = 0
     end
     self.stateMachine.states.requestFakePattern.update = function()
-      --- No Recipe is currently running so start one
       if self.stateMachine.data.currentRecipe == nil then
         self.stateMachine.data.currentRecipe = self:requestFakeRecipe()
-      end
-
-      --- Check current recipe status
-      if self.stateMachine.data.isComputing() == true then
+      elseif self.stateMachine.data.currentRecipe.isComputing() == true then
         os.sleep(1)
       elseif self.stateMachine.data.currentRecipe.isDone() == true then
         self.stateMachine.data.craftFailCount = 0
@@ -472,7 +468,9 @@ function heliofusionExoticizerController:new(
   ---@private
   function obj:requestFakeRecipe()
     local recipe = obj.inputMeInterfaceProxy.getCraftables({label = self.fakeRecipeName})[1]
-    return recipe.request(1)
+    local craft = recipe.request(1)
+
+    return craft
   end
 
   setmetatable(obj, self)
