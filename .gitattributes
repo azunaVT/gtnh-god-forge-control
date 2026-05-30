@@ -1,0 +1,8 @@
+/docs export-ignore
+README.md export-ignore
+LICENSE export-ignore
+.gitignore export-ignore
+.github export-ignore
+installer.lua export-ignore
+.gitattributes export-ignore
+.git/ export-ignore
