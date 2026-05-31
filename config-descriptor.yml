@@ -38,43 +38,43 @@ descriptor:
           label: Enable Magmatter Mode
           description: Enable mode of production magmatter
 
-        - key: outputMeInterfaceAddress
-          type: address
-          label: Output ME Interface Address
-          description: Address of me interface which connected to output AE
-
-        - key: inputMeInterfaceAddress
-          type: address
-          label: Input ME Interface Address
-          description: Address of me interface which connected to input AE
-
         - key: transposerAddress
           type: address
           label: Transposer Address
           description: Address of transposer
 
-        - key: meIoPortSide
-          type: side
-          default: sides.south
-          label: ME IO Port Side
-          description: Side of the transposer which connected to input AE ME IO Port
-
-        - key: meDriveSide
-          type: side
-          default: sides.north
-          label: ME Drive Side
-          description: Side of the transposer which connected to output AE ME Drive
-
-        - key: redstoneIoAddress
+        - key: outputMeInterfaceAddress
           type: address
-          label: Redstone Address
-          description: Address of the Redstone I/O
+          label: Output ME Interface Address
+          description: Address of me interface which connected to output AE
 
-        - key: redstoneIoSide
+        - key: outputMeTransposerSide
+          type: side
+          default: sides.east
+          label: Output ME Transposer Side
+          description: Side of the transposer which connected to output AE network
+
+        - key: mainMeInterfaceAddress
+          type: address
+          label: Main ME Interface Address
+          description: Address of me interface which connected to main AE
+
+        - key: mainMeTransposerSide
           type: side
           default: sides.west
-          label: Redstone IO Side
-          description: Side of the redstone IO which connected to ME Level Emitter or other controller
+          label: Main ME Transposer Side
+          description: Side of the transposer which connected to main AE network
+
+        - key: plasmaFabricatorMeInterfaceAddress
+          type: address
+          label: Plasma Fabricator ME Interface Address
+          description: Address of me interface which connected to plasma AE network
+
+        - key: plasmaFabricatorMeTransposerSide
+          type: side
+          default: sides.north
+          label: Plasma Fabricator ME Transposer Side
+          description: Side of the transposer which connected to plasma AE network
 
   configTemplate: |
     local sides = require("sides")
@@ -113,13 +113,13 @@ descriptor:
 
       controller = heliofusionExoticizerController:newFormConfig({
         magmatterMode = <field>magmatterMode</field>, -- Enable mode of production magmatter.
-        outputMeInterfaceAddress = "<field>outputMeInterfaceAddress</field>", -- Address of me interface which connected to output AE.
-        inputMeInterfaceAddress = "<field>inputMeInterfaceAddress</field>", -- Address of me interface which connected to input AE.
         transposerAddress = "<field>transposerAddress</field>", -- Address of transposer.
-        meIoPortSide = <field>meIoPortSide</field>, -- Side of the transposer which connected to input AE ME IO Port.
-        meDriveSide = <field>meDriveSide</field>, -- Side of the transposer which connected to output AE ME Drive.
-        redstoneIoAddress = "<field>redstoneIoAddress</field>", -- Redstone IO Address.
-        redstoneIoSide = <field>redstoneIoSide</field> -- Side of the redstone IO which connected to ME Level Emitter or other controller.
+        outputMeInterfaceAddress = "<field>outputMeInterfaceAddress</field>", -- Address of me interface which connected to output AE.
+        outputMeTransposerSide = sides.east, -- Side of the transposer which connected to output AE network.
+        mainMeInterfaceAddress = "<field>mainMeInterfaceAddress</field>", -- Address of me interface which connected to main AE.
+        mainMeTransposerSide = sides.west, -- Side of the transposer which connected to main AE network.
+        plasmaFabricatorMeInterfaceAddress = "<field>plasmaFabricatorMeInterfaceAddress</field>", -- Address of me interface which connected to plasma AE.
+        plasmaFabricatorMeTransposerSide = sides.north -- Side of the transposer which connected to plasma AE network.
       })
     }
 

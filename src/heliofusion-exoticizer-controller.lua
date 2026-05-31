@@ -7,13 +7,13 @@ local componentDiscoverLib = require("lib.component-discover-lib")
 
 ---@class HeliofusionExoticizerControllerConfig
 ---@field magmatterMode boolean
----@field outputMeInterfaceAddress string
----@field inputMeInterfaceAddress string
 ---@field transposerAddress string
----@field redstoneIoAddress string
----@field meIoPortSide number
----@field meDriveSide number
----@field redstoneIoSide number
+---@field outputMeInterfaceAddress string
+---@field outputMeTransposerSide number
+---@field mainMeInterfaceAddress string
+---@field mainMeTransposerSide number
+---@field plasmaFabricatorMeInterfaceAddress string
+---@field plasmaFabricatorMeTransposerSide number
 
 ---@class OutputItem
 ---@field label string
@@ -133,47 +133,43 @@ local heliofusionExoticizerController = {}
 function heliofusionExoticizerController:newFormConfig(config)
   return self:new(
     config.magmatterMode,
-    config.outputMeInterfaceAddress,
-    config.inputMeInterfaceAddress,
     config.transposerAddress,
-    config.redstoneIoAddress,
-    config.meIoPortSide,
-    config.meDriveSide,
-    config.redstoneIoSide
+    config.outputMeInterfaceAddress,
+    config.outputMeTransposerSide,
+    config.mainMeInterfaceAddress,
+    config.mainMeTransposerSide,
+    config.plasmaFabricatorMeInterfaceAddress,
+    config.plasmaFabricatorMeTransposerSide
   )
 end
 
 ---Crate new HeliofusionExoticizerController object
 ---@param magmatterMode boolean
----@param outputMeInterfaceAddress string
----@param inputMeInterfaceAddress string
 ---@param transposerAddress string
----@param redstoneIoAddress string
----@param meIoPortSide number
----@param meDriveSide number
----@param redstoneIoSide number
+---@param outputMeInterfaceAddress string
+---@param outputMeTransposerSide number
+---@param mainMeInterfaceAddress string
+---@param mainMeTransposerSide number
+---@param plasmaFabricatorMeInterfaceAddress string
+---@param plasmaFabricatorMeTransposerSide number
 ---@return HeliofusionExoticizerController
 function heliofusionExoticizerController:new(
   magmatterMode,
-  outputMeInterfaceAddress,
-  inputMeInterfaceAddress,
   transposerAddress,
-  redstoneIoAddress,
-  meIoPortSide,
-  meDriveSide,
-  redstoneIoSide)
+  outputMeInterfaceAddress,
+  outputMeTransposerSide,
+  mainMeInterfaceAddress,
+  mainMeTransposerSide,
+  plasmaFabricatorMeInterfaceAddress,
+  plasmaFabricatorMeTransposerSide)
 
   ---@class HeliofusionExoticizerController
   local obj = {}
 
   obj.outputMeInterfaceProxy = nil
-  obj.inputMeInterfaceProxy = nil
+  obj.mainMeInterfaceProxy = nil
+  obj.plasmaFabricatorMeInterfaceProxy = nil
   obj.transposerProxy = nil
-  obj.redstoneIoProxy = nil
-
-  obj.meIoPortSide = meIoPortSide
-  obj.meDriveSide = meDriveSide
-  obj.redstoneIoSide = redstoneIoSide
 
   obj.magmatterMode = magmatterMode
 
@@ -188,12 +184,12 @@ function heliofusionExoticizerController:new(
   function obj:init()
     self.fakeRecipeName = "Fake recipe "..self.database.address:sub(0, 8)
 
-    self.outputMeInterfaceProxy = componentDiscoverLib.discoverProxy(outputMeInterfaceAddress, "Output Me Interface", "me_interface")
-    self.inputMeInterfaceProxy = componentDiscoverLib.discoverProxy(inputMeInterfaceAddress, "Input Me Interface", "me_interface")
+    self.outputMeInterfaceProxy = componentDiscoverLib.discoverProxy(outputMeInterfaceAddress, "Output ME Interface", "me_interface")
+    self.mainMeInterfaceProxy = componentDiscoverLib.discoverProxy(mainMeInterfaceAddress, "Main ME Interface", "me_interface")
+    self.plasmaFabricatorMeInterfaceProxy = componentDiscoverLib.discoverProxy(plasmaFabricatorMeInterfaceAddress, "Plasma Fabricator ME Interface", "me_interface")
     self.transposerProxy = componentDiscoverLib.discoverProxy(transposerAddress, "Transposer", "transposer")
-    self.redstoneIoProxy = componentDiscoverLib.discoverProxy(redstoneIoAddress, "Redstone io", "redstone")
 
-    self.stateMachine.data.outputs = nil
+    self.stateMachine.data.challengeOutputs = nil
     self.stateMachine.data.craftFailCount = 0
     self.stateMachine.data.currentRecipe = nil
     self.stateMachine.data.time = computer.uptime()
@@ -201,7 +197,9 @@ function heliofusionExoticizerController:new(
     self.stateMachine.data.notifyLongEndTime = false
 
     self:fillDatabase(self.magmatterMode and "Magmatter" or "Gluon")
-    self:clearPattern()
+    self:clearInterfaceConfigs(self.outputMeInterfaceProxy)
+    self:clearInterfaceConfigs(self.mainMeInterfaceProxy)
+    self:clearInterfaceConfigs(self.plasmaFabricatorMeInterfaceProxy)
 
     self.stateMachine.states.idle = self.stateMachine:createState("Idle")
     self.stateMachine.states.idle.init = function()
@@ -213,29 +211,25 @@ function heliofusionExoticizerController:new(
       end
     end
     self.stateMachine.states.idle.update = function()
-      local signal = self.redstoneIoProxy.getInput(self.redstoneIoSide)
+      local items, itemsCount = self:getChallengeOutputs()
+      local diff = math.ceil(computer.uptime() - self.stateMachine.data.time)
 
-      if signal ~= 0 then
-        local items, itemsCount = self:getOutputs()
-        local diff = math.ceil(computer.uptime() - self.stateMachine.data.time)
-
-        if itemsCount >= (self.magmatterMode == true and 3 or 7) then
-          self.stateMachine.data.outputs = items
-          self.stateMachine:setState(self.stateMachine.states.encodeFakePattern)
-        elseif diff > 240 and self.stateMachine.data.notifyLongIdle == false then
-          self.stateMachine.data.notifyLongIdle = true
-          event.push("log_warning", "More than four minutes in the idle state: "..diff)
-        end
+      if itemsCount >= (self.magmatterMode == true and 3 or 7) then
+        self.stateMachine.data.challengeOutputs = items
+        self.stateMachine:setState(self.stateMachine.states.solvingChallenge)
+      elseif diff > 240 and self.stateMachine.data.notifyLongIdle == false then
+        self.stateMachine.data.notifyLongIdle = true
+        event.push("log_warning", "More than four minutes in the idle state: "..diff)
       end
     end
 
-    self.stateMachine.states.encodeFakePattern = self.stateMachine:createState("Encode Fake Pattern")
-    self.stateMachine.states.encodeFakePattern.init = function()
+    self.stateMachine.states.solvingChallenge = self.stateMachine:createState("Solving Challenge")
+    self.stateMachine.states.solvingChallenge.init = function()
       if self.stateMachine.data.notifyLongIdle == true then
-        event.push("log_warning", "Successfully went to Encode Fake Pattern state after a long Idle state")
+        event.push("log_warning", "Successfully went to Solving Challenge state after a long Idle state")
       end
 
-      local success, outputsCount = self:encodePattern(self.stateMachine.data.outputs)
+      local success, outputsCount = self:solveChallenge(self.stateMachine.data.challengeOutputs)
 
       if success == false then
         self.stateMachine.data.errorMessage = "Found an unidentified object in the output subnet"
@@ -251,79 +245,8 @@ function heliofusionExoticizerController:new(
         return
       end
 
-      self.stateMachine:setState(self.stateMachine.states.clearOutputAe)
+      self.stateMachine:setState(self.stateMachine.states.idle)
     end
-
-    self.stateMachine.states.clearOutputAe = self.stateMachine:createState("Clear Output AE")
-    self.stateMachine.states.clearOutputAe.init = function()
-      self:clearAe()
-      self.stateMachine:setState(self.stateMachine.states.requestFakePattern)
-    end
-
-    self.stateMachine.states.requestFakePattern = self.stateMachine:createState("Request Fake Pattern")
-    self.stateMachine.states.requestFakePattern.init = function()
-      self.stateMachine.data.craftFailCount = 0
-      if self.stateMachine.data.currentRecipe == nil then
-        self.stateMachine.data.currentRecipe = self:requestFakeRecipe()
-        event.push("debug", "Requested craft for fake pattern: "..tostring(self.stateMachine.data.currentRecipe))
-      end
-    end
-    self.stateMachine.states.requestFakePattern.update = function()
-      if self.stateMachine.data.currentRecipe == nil then
-        self.stateMachine.data.errorMessage = "No craft was requested"
-        self.stateMachine:setState(self.stateMachine.states.error)
-        return
-      end
-
-      if self.stateMachine.data.currentRecipe.isComputing() == true then
-        os.sleep(1)
-      elseif self.stateMachine.data.currentRecipe.isDone() == true then
-        self.stateMachine.data.craftFailCount = 0
-        self.stateMachine:setState(self.stateMachine.states.waitEnd)
-      elseif self.stateMachine.data.currentRecipe.hasFailed() == true then
-        if self.stateMachine.data.craftFailCount >= 3 then
-          self.stateMachine.data.craftFailCount = 0
-          self.stateMachine.data.errorMessage = "Cant request craft: "..self.fakeRecipeName.." because "..self.stateMachine.data.currentRecipe.result[0].reason
-          self.stateMachine:setState(self.stateMachine.states.error)
-          return
-        else
-          self.stateMachine.data.craftFailCount = self.stateMachine.data.craftFailCount + 1
-          os.sleep(1)
-        end
-      end
-    end
-
-    self.stateMachine.states.waitEnd = self.stateMachine:createState("Wait End")
-    self.stateMachine.states.waitEnd.init = function()
-      self.stateMachine.data.waitEndTime = computer.uptime()
-      self.stateMachine.data.notifyLongEndTime = false
-    end
-    self.stateMachine.states.waitEnd.update = function()
-      local _, itemsCount = self:getOutputs()
-
-      local diff = math.ceil(computer.uptime() - self.stateMachine.data.waitEndTime)
-
-      if itemsCount ~= 0 then
-        --- Craft is finished, go to idle
-        self.stateMachine.data.outputs = nil
-        self.stateMachine.data.currentRecipe = nil
-        self.stateMachine:setState(self.stateMachine.states.idle)
-      elseif diff > 240 and self.stateMachine.data.notifyLongEndTime == false then
-        self.stateMachine.data.notifyLongEndTime = true
-        event.push("log_warning", "More than four minutes in the wait end state: "..diff)
-      end
-    end
-
-    self.stateMachine.states.error = self.stateMachine:createState("Error")
-    self.stateMachine.states.error.init = function()
-      event.push("log_error", self.stateMachine.data.errorMessage)
-      event.push("log_info","&red;Press Enter to confirm")
-
-      self.stateMachine.data.errorMessage = nil
-    end
-
-    self.stateMachine:setState(self.stateMachine.states.idle)
-  end
 
   ---Loop
   function obj:loop()
@@ -359,47 +282,41 @@ function heliofusionExoticizerController:new(
 
   ---Clear inputs and outputs of the fake pattern
   ---@private
-  function obj:clearPattern()
-    local pattern = self.inputMeInterfaceProxy.getInterfacePattern(1)
-
-    if pattern == nil then
-      error("No pattern in Interface")
+  function obj:clearInterfaceConfigs(interfaceProxy)
+    for i = 1, 9, 1 do
+      interfaceProxy.setItemInterfaceConfiguration(i)
+      if i >= 6 then
+        interfaceProxy.setFluidInterfaceConfiguration(i)
+      end
     end
-
-    for key, _ in pairs(pattern.outputs) do
-      self.inputMeInterfaceProxy.clearInterfacePatternOutput(1, key)
-    end
-
-    for key, _ in pairs(pattern.inputs) do
-      self.inputMeInterfaceProxy.clearInterfacePatternInput(1, key)
-    end
-
-    self.inputMeInterfaceProxy.setInterfacePatternOutput(1, self.database.address, 1, 1, 1)
-    self.inputMeInterfaceProxy.setInterfacePatternInput(1, self.database.address, 1, 1, 1)
   end
 
-  ---Encode fake pattern with the right plasmas
+  ---Solve the challenge with the right plasmas
   ---@param outputs table<string, OutputItem>
   ---@return boolean
   ---@return integer
   ---@private
-  function obj:encodePattern(outputs)
+  function obj:solveChallenge(outputs)
     local index = 1
-    local count = 0
 
     for key, value in pairs(outputs) do
+      local amountToRequest = 0
+
       if self.magmatterMode == true then
         if key == "Spatially Enlarged Fluid" or key == "Tachyon Rich Temporal Fluid" then
-          count = value.count
+          amountToRequest = value.count
         else
-          count = math.abs(outputs["Spatially Enlarged Fluid"].count - outputs["Tachyon Rich Temporal Fluid"].count) * 144
+          amountToRequest = math.abs(outputs["Spatially Enlarged Fluid"].count - outputs["Tachyon Rich Temporal Fluid"].count)
         end
       else
-        count = value.count * (value.isLiquid == true and 1000 or 144)
+        amountToRequest = value.count * (value.isLiquid == true and 1000 or 144)
       end
 
       if self.plasmaList[value.label] ~= nil then
-        self.inputMeInterfaceProxy.setInterfacePatternInput(1, self.database.address, self.plasmaList[value.label].databaseIndex, count, index)
+        event.push("log_info", "Requesting "..amountToRequest.." of "..value.label.." from Main AE network")
+        -- We're done, empty out the output subnet so the next recipe can start
+        -- Configure outputMeInterfaceAddress to stock those fluids/items and their count value to be sent to the plasma fabricator.
+        -- then use transposerAddress to move them into the plasmaInputInterfaceAddress from both the main net to plasma net
       else
         return false, index - 1
       end
@@ -410,11 +327,11 @@ function heliofusionExoticizerController:new(
     return true, index - 1
   end
 
-  ---Get items from output ae
+  ---Get items and liquids from output AE for to solve the challenge
   ---@return table<string, OutputItem>
   ---@return number
   ---@private
-  function obj:getOutputs()
+  function obj:getChallengeOutputs()
     local items = obj.outputMeInterfaceProxy.getItemsInNetwork({})
     local liquids = obj.outputMeInterfaceProxy.getFluidsInNetwork()
 
@@ -453,31 +370,6 @@ function heliofusionExoticizerController:new(
     end
 
     return outputs, count
-  end
-
-  ---Clear output ae by move items in input ae
-  ---@private
-  function obj:clearAe()
-    for i = 1, 3, 1 do
-      self.transposerProxy.transferItem(self.meDriveSide, self.meIoPortSide, 1)
-    end
-
-    while self.transposerProxy.getSlotStackSize(self.meIoPortSide, 9) ~= 1 do
-      os.sleep(0.1)
-    end
-
-    for i = 1, 3, 1 do
-      self.transposerProxy.transferItem(self.meIoPortSide, self.meDriveSide, 1)
-    end
-  end
-
-  ---Request fake pattern
-  ---@private
-  function obj:requestFakeRecipe()
-    local recipe = obj.inputMeInterfaceProxy.getCraftables({label = self.fakeRecipeName})[1]
-    local craft = recipe.request(1)
-
-    return craft
   end
 
   setmetatable(obj, self)
