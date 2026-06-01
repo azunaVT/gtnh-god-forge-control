@@ -39,7 +39,6 @@ local config = {
     outputMeTransposerSide = sides.east, -- Side of the transposer which connected to output AE network.
     mainMeInterfaceAddress = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", -- Address of me interface which connected to main AE.
     mainMeTransposerSide = sides.west, -- Side of the transposer which connected to main AE network.
-    plasmaFabricatorMeInterfaceAddress = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", -- Address of me interface which connected to plasma AE.
     plasmaFabricatorMeTransposerSide = sides.north -- Side of the transposer which connected to plasma AE network.
   })
 }

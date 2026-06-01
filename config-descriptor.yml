@@ -65,11 +65,6 @@ descriptor:
           label: Main ME Transposer Side
           description: Side of the transposer which connected to main AE network
 
-        - key: plasmaFabricatorMeInterfaceAddress
-          type: address
-          label: Plasma Fabricator ME Interface Address
-          description: Address of me interface which connected to plasma AE network
-
         - key: plasmaFabricatorMeTransposerSide
           type: side
           default: sides.north
@@ -118,7 +113,6 @@ descriptor:
         outputMeTransposerSide = sides.east, -- Side of the transposer which connected to output AE network.
         mainMeInterfaceAddress = "<field>mainMeInterfaceAddress</field>", -- Address of me interface which connected to main AE.
         mainMeTransposerSide = sides.west, -- Side of the transposer which connected to main AE network.
-        plasmaFabricatorMeInterfaceAddress = "<field>plasmaFabricatorMeInterfaceAddress</field>", -- Address of me interface which connected to plasma AE.
         plasmaFabricatorMeTransposerSide = sides.north -- Side of the transposer which connected to plasma AE network.
       })
     }

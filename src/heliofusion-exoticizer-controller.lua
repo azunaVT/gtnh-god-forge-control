@@ -12,7 +12,6 @@ local componentDiscoverLib = require("lib.component-discover-lib")
 ---@field outputMeTransposerSide number
 ---@field mainMeInterfaceAddress string
 ---@field mainMeTransposerSide number
----@field plasmaFabricatorMeInterfaceAddress string
 ---@field plasmaFabricatorMeTransposerSide number
 
 ---@class OutputItem
@@ -138,7 +137,6 @@ function heliofusionExoticizerController:newFormConfig(config)
     config.outputMeTransposerSide,
     config.mainMeInterfaceAddress,
     config.mainMeTransposerSide,
-    config.plasmaFabricatorMeInterfaceAddress,
     config.plasmaFabricatorMeTransposerSide
   )
 end
@@ -150,7 +148,6 @@ end
 ---@param outputMeTransposerSide number
 ---@param mainMeInterfaceAddress string
 ---@param mainMeTransposerSide number
----@param plasmaFabricatorMeInterfaceAddress string
 ---@param plasmaFabricatorMeTransposerSide number
 ---@return HeliofusionExoticizerController
 function heliofusionExoticizerController:new(
@@ -160,7 +157,6 @@ function heliofusionExoticizerController:new(
   outputMeTransposerSide,
   mainMeInterfaceAddress,
   mainMeTransposerSide,
-  plasmaFabricatorMeInterfaceAddress,
   plasmaFabricatorMeTransposerSide)
 
   ---@class HeliofusionExoticizerController
@@ -168,7 +164,6 @@ function heliofusionExoticizerController:new(
 
   obj.outputMeInterfaceProxy = nil
   obj.mainMeInterfaceProxy = nil
-  obj.plasmaFabricatorMeInterfaceProxy = nil
   obj.transposerProxy = nil
 
   obj.magmatterMode = magmatterMode
@@ -178,20 +173,21 @@ function heliofusionExoticizerController:new(
   obj.stateMachine = stateMachineLib:new()
 
   obj.plasmaList = {}
-  obj.fakeRecipeName = ""
 
   ---Init
   function obj:init()
-    self.fakeRecipeName = "Fake recipe "..self.database.address:sub(0, 8)
+    self.transposerProxy = componentDiscoverLib.discoverProxy(transposerAddress, "Transposer", "transposer")
 
     self.outputMeInterfaceProxy = componentDiscoverLib.discoverProxy(outputMeInterfaceAddress, "Output ME Interface", "me_interface")
+    self.outputMeTransposerSide = outputMeTransposerSide
+
     self.mainMeInterfaceProxy = componentDiscoverLib.discoverProxy(mainMeInterfaceAddress, "Main ME Interface", "me_interface")
-    self.plasmaFabricatorMeInterfaceProxy = componentDiscoverLib.discoverProxy(plasmaFabricatorMeInterfaceAddress, "Plasma Fabricator ME Interface", "me_interface")
-    self.transposerProxy = componentDiscoverLib.discoverProxy(transposerAddress, "Transposer", "transposer")
+    self.mainMeTransposerSide = mainMeTransposerSide
+
+    self.plasmaFabricatorMeTransposerSide = plasmaFabricatorMeTransposerSide
 
     self.stateMachine.data.challengeOutputs = nil
     self.stateMachine.data.craftFailCount = 0
-    self.stateMachine.data.currentRecipe = nil
     self.stateMachine.data.time = computer.uptime()
     self.stateMachine.data.notifyLongIdle = false
     self.stateMachine.data.notifyLongEndTime = false
@@ -199,8 +195,8 @@ function heliofusionExoticizerController:new(
     self:fillDatabase(self.magmatterMode and "Magmatter" or "Gluon")
     self:clearInterfaceConfigs(self.outputMeInterfaceProxy)
     self:clearInterfaceConfigs(self.mainMeInterfaceProxy)
-    self:clearInterfaceConfigs(self.plasmaFabricatorMeInterfaceProxy)
 
+    ---Idle state is the default state where we loop and check for challengeOutputs to trigger the solving challenge state
     self.stateMachine.states.idle = self.stateMachine:createState("Idle")
     self.stateMachine.states.idle.init = function()
       self.stateMachine.data.time = computer.uptime()
@@ -223,6 +219,7 @@ function heliofusionExoticizerController:new(
       end
     end
 
+    ---The Solving Challenge state is where we solve the challenge by requesting the right inputs to send to the Plasma Fabricator
     self.stateMachine.states.solvingChallenge = self.stateMachine:createState("Solving Challenge")
     self.stateMachine.states.solvingChallenge.init = function()
       if self.stateMachine.data.notifyLongIdle == true then
@@ -248,6 +245,17 @@ function heliofusionExoticizerController:new(
       self.stateMachine:setState(self.stateMachine.states.idle)
     end
 
+    self.stateMachine.states.error = self.stateMachine:createState("Error")
+    self.stateMachine.states.error.init = function()
+      event.push("log_error", self.stateMachine.data.errorMessage)
+      event.push("log_info","&red;Press Enter to confirm")
+
+      self.stateMachine.data.errorMessage = nil
+    end
+
+    self.stateMachine:setState(self.stateMachine.states.idle)
+  end
+
   ---Loop
   function obj:loop()
     self.stateMachine:update()
@@ -260,14 +268,13 @@ function heliofusionExoticizerController:new(
     end
   end
 
-  ---Fill database witch right plasmas
+  ---Fill database with all possible plasmas depending on mode
   ---@private
-  function obj:fillDatabase(recipe)
-    self.database.set(1, "minecraft:paper", 0, "{display:{Name:\""..self.fakeRecipeName.."\"}}")
-
+  function obj:fillDatabase(mode)
+    -- Leaving one space at the beginning of the database for other future usage
     local databaseIndex = 2
 
-    for key, value in pairs(plasmaList[recipe]) do
+    for key, value in pairs(plasmaList[mode]) do
       local result = self.database.set(databaseIndex, "ae2fc:fluid_drop", 0, "{Fluid:\""..value.."\"}")
 
       if result == false then
@@ -280,11 +287,12 @@ function heliofusionExoticizerController:new(
     end
   end
 
-  ---Clear inputs and outputs of the fake pattern
+  ---Clear ME interface configs
+  ---@param interfaceProxy table
   ---@private
   function obj:clearInterfaceConfigs(interfaceProxy)
     for i = 1, 9, 1 do
-      interfaceProxy.setItemInterfaceConfiguration(i)
+      interfaceProxy.setInterfaceConfiguration(i)
       if i >= 6 then
         interfaceProxy.setFluidInterfaceConfiguration(i)
       end
@@ -301,22 +309,25 @@ function heliofusionExoticizerController:new(
 
     for key, value in pairs(outputs) do
       local amountToRequest = 0
+      local ingotsOfPlasmaPerDust = 9
+      local litersOfPlasmaPerFluid = 1000
 
-      if self.magmatterMode == true then
-        if key == "Spatially Enlarged Fluid" or key == "Tachyon Rich Temporal Fluid" then
-          amountToRequest = value.count
-        else
-          amountToRequest = math.abs(outputs["Spatially Enlarged Fluid"].count - outputs["Tachyon Rich Temporal Fluid"].count)
-        end
+      -- We only need to calculate the amount of dust required in magmatter mode, for the rest we just need to send the challengeOutputs given to the plasma fabricator
+      if self.magmatterMode == true and (key ~= "Spatially Enlarged Fluid" and key ~= "Tachyon Rich Temporal Fluid") then
+        event.push("log_info", "Requesting "..value.count.." of "..value.label.." from Main AE network")
+        amountToRequest = math.abs(outputs["Spatially Enlarged Fluid"].count - outputs["Tachyon Rich Temporal Fluid"].count)
+      elseif value.isLiquid == true then
+        amountToRequest = value.count * litersOfPlasmaPerFluid
       else
-        amountToRequest = value.count * (value.isLiquid == true and 1000 or 144)
+        amountToRequest = value.count * ingotsOfPlasmaPerDust
       end
 
       if self.plasmaList[value.label] ~= nil then
         event.push("log_info", "Requesting "..amountToRequest.." of "..value.label.." from Main AE network")
-        -- We're done, empty out the output subnet so the next recipe can start
+        -- We're done, empty out the output subnet so the next challenge can start
         -- Configure outputMeInterfaceAddress to stock those fluids/items and their count value to be sent to the plasma fabricator.
         -- then use transposerAddress to move them into the plasmaInputInterfaceAddress from both the main net to plasma net
+        os.sleep(30)
       else
         return false, index - 1
       end
@@ -340,6 +351,8 @@ function heliofusionExoticizerController:new(
     local count = 0
 
     for _, value in pairs(items) do
+      event.push("log_debug", "Found "..value.size.." of "..value.label.." in output ME network")
+
       local label = value.label:match("Pile of%s(.+)%sDust")
       local coefficient = 1
 
@@ -358,6 +371,8 @@ function heliofusionExoticizerController:new(
     end
 
     for _, value in pairs(liquids) do
+      event.push("log_debug", "Found "..value.amount.." of "..value.label.." in output ME network")
+
       local label = value.label:match("^(.-)%s?[Gg]?[Aa]?[Ss]?$")
 
       if label == nil then
