@@ -314,7 +314,6 @@ function heliofusionExoticizerController:new(
 
       -- We only need to calculate the amount of dust required in magmatter mode, for the rest we just need to send the challengeOutputs given to the plasma fabricator
       if self.magmatterMode == true and (key ~= "Spatially Enlarged Fluid" and key ~= "Tachyon Rich Temporal Fluid") then
-        event.push("log_info", "Requesting "..value.count.." of "..value.label.." from Main AE network")
         amountToRequest = math.abs(outputs["Spatially Enlarged Fluid"].count - outputs["Tachyon Rich Temporal Fluid"].count)
       elseif value.isLiquid == true then
         amountToRequest = value.count * litersOfPlasmaPerFluid
@@ -354,17 +353,15 @@ function heliofusionExoticizerController:new(
       event.push("log_debug", "Found "..value.size.." of "..value.label.." in output ME network")
 
       local label = value.label:match("Pile of%s(.+)%sDust")
-      local coefficient = 1
 
       if label == nil then
         label = value.label:match("(.+) Dust")
-        coefficient = 9
       end
 
       if label == nil then
-        outputs[value.label] = {label = value.label, count = value.size * coefficient, isLiquid = false}
+        outputs[value.label] = {label = value.label, count = value.size, isLiquid = false}
       else
-        outputs[label] = {label = label, count = value.size * coefficient, isLiquid = false}
+        outputs[label] = {label = label, count = value.size, isLiquid = false}
       end
 
       count = count + 1
