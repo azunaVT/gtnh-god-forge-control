@@ -34,12 +34,8 @@ local config = {
 
   controller = heliofusionExoticizerController:newFormConfig({
     magmatterMode = false, -- Enable mode of production magmatter.
-    transposerAddress = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", -- Address of transposer.
-    outputMeInterfaceAddress = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", -- Address of me interface which connected to output AE.
-    outputMeTransposerSide = sides.east, -- Side of the transposer which connected to output AE network.
-    mainMeInterfaceAddress = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", -- Address of me interface which connected to main AE.
-    mainMeTransposerSide = sides.west, -- Side of the transposer which connected to main AE network.
-    plasmaFabricatorMeTransposerSide = sides.north -- Side of the transposer which connected to plasma AE network.
+    outputMeDriveSide = sides.east, -- Side of the transposer which connected to output AE network.
+    mainIoPortSide = sides.west -- Side of the transposer which connected to main AE network.
   })
 }
 

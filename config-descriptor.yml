@@ -1,7 +1,7 @@
 descriptor:
   name: God Forge Control
-  description: Program for automating the production of Degenerate Quark Gluon Plasma and Molten Magmatter
-  repositoryLink: https://github.com/Navatusein/GTNH-OC-God-Forge-Control
+  description: Program for automating the production of Degenerate Quark Gluon Plasma and Molten Magmatter with ProgrammableHatches
+  repositoryLink: https://github.com/azunaVT/gtnh-god-forge-control
   fieldGroups:
     - key: logger
       name: Logger
@@ -38,38 +38,17 @@ descriptor:
           label: Enable Magmatter Mode
           description: Enable mode of production magmatter
 
-        - key: transposerAddress
-          type: address
-          label: Transposer Address
-          description: Address of transposer
-
-        - key: outputMeInterfaceAddress
-          type: address
-          label: Output ME Interface Address
-          description: Address of me interface which connected to output AE
-
         - key: outputMeTransposerSide
           type: side
           default: sides.east
           label: Output ME Transposer Side
           description: Side of the transposer which connected to output AE network
 
-        - key: mainMeInterfaceAddress
-          type: address
-          label: Main ME Interface Address
-          description: Address of me interface which connected to main AE
-
         - key: mainMeTransposerSide
           type: side
           default: sides.west
           label: Main ME Transposer Side
           description: Side of the transposer which connected to main AE network
-
-        - key: plasmaFabricatorMeTransposerSide
-          type: side
-          default: sides.north
-          label: Plasma Fabricator ME Transposer Side
-          description: Side of the transposer which connected to plasma AE network
 
   configTemplate: |
     local sides = require("sides")
@@ -108,12 +87,8 @@ descriptor:
 
       controller = heliofusionExoticizerController:newFormConfig({
         magmatterMode = <field>magmatterMode</field>, -- Enable mode of production magmatter.
-        transposerAddress = "<field>transposerAddress</field>", -- Address of transposer.
-        outputMeInterfaceAddress = "<field>outputMeInterfaceAddress</field>", -- Address of me interface which connected to output AE.
         outputMeTransposerSide = sides.east, -- Side of the transposer which connected to output AE network.
-        mainMeInterfaceAddress = "<field>mainMeInterfaceAddress</field>", -- Address of me interface which connected to main AE.
-        mainMeTransposerSide = sides.west, -- Side of the transposer which connected to main AE network.
-        plasmaFabricatorMeTransposerSide = sides.north -- Side of the transposer which connected to plasma AE network.
+        mainMeTransposerSide = sides.west -- Side of the transposer which connected to main AE network.
       })
     }
 

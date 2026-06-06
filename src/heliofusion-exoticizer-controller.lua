@@ -7,20 +7,16 @@ local componentDiscoverLib = require("lib.component-discover-lib")
 
 ---@class HeliofusionExoticizerControllerConfig
 ---@field magmatterMode boolean
----@field transposerAddress string
----@field outputMeInterfaceAddress string
----@field outputMeTransposerSide number
----@field mainMeInterfaceAddress string
----@field mainMeTransposerSide number
----@field plasmaFabricatorMeTransposerSide number
+---@field outputMeDriveSide number
+---@field mainIoPortSide number
 
 ---@class OutputItem
 ---@field label string
 ---@field count number
 ---@field isLiquid boolean
 
----@type table<"Gluon"|"Magmatter", table<string, string>>
-local plasmaList = {
+---@type table<"Gluon"|"Magmatter", string[]>
+local possibleInputs = {
   ["Gluon"] = {
     ["Aluminium"] = "plasma.aluminium",
     ["Americium"] = "plasma.americium",
@@ -132,32 +128,20 @@ local heliofusionExoticizerController = {}
 function heliofusionExoticizerController:newFormConfig(config)
   return self:new(
     config.magmatterMode,
-    config.transposerAddress,
-    config.outputMeInterfaceAddress,
-    config.outputMeTransposerSide,
-    config.mainMeInterfaceAddress,
-    config.mainMeTransposerSide,
-    config.plasmaFabricatorMeTransposerSide
+    config.outputMeDriveSide,
+    config.mainIoPortSide
   )
 end
 
 ---Crate new HeliofusionExoticizerController object
 ---@param magmatterMode boolean
----@param transposerAddress string
----@param outputMeInterfaceAddress string
----@param outputMeTransposerSide number
----@param mainMeInterfaceAddress string
----@param mainMeTransposerSide number
----@param plasmaFabricatorMeTransposerSide number
+---@param outputMeDriveSide number
+---@param mainIoPortSide number
 ---@return HeliofusionExoticizerController
 function heliofusionExoticizerController:new(
   magmatterMode,
-  transposerAddress,
-  outputMeInterfaceAddress,
-  outputMeTransposerSide,
-  mainMeInterfaceAddress,
-  mainMeTransposerSide,
-  plasmaFabricatorMeTransposerSide)
+  outputMeDriveSide,
+  mainIoPortSide)
 
   ---@class HeliofusionExoticizerController
   local obj = {}
@@ -172,29 +156,26 @@ function heliofusionExoticizerController:new(
 
   obj.stateMachine = stateMachineLib:new()
 
-  obj.plasmaList = {}
+  obj.possibleInputsList = {}
 
   ---Init
   function obj:init()
+    local transposerAddress = component.transposer.address
     self.transposerProxy = componentDiscoverLib.discoverProxy(transposerAddress, "Transposer", "transposer")
 
-    self.outputMeInterfaceProxy = componentDiscoverLib.discoverProxy(outputMeInterfaceAddress, "Output ME Interface", "me_interface")
-    self.outputMeTransposerSide = outputMeTransposerSide
+    local meInterfaceAddress = component.me_interface.address
+    self.outputMeInterfaceProxy = componentDiscoverLib.discoverProxy(meInterfaceAddress, "Output ME Interface", "me_interface")
+    self.outputMeDriveSide = outputMeDriveSide
+    self.mainIoPortSide = mainIoPortSide
 
-    self.mainMeInterfaceProxy = componentDiscoverLib.discoverProxy(mainMeInterfaceAddress, "Main ME Interface", "me_interface")
-    self.mainMeTransposerSide = mainMeTransposerSide
-
-    self.plasmaFabricatorMeTransposerSide = plasmaFabricatorMeTransposerSide
+    local hubAddress = component.iohub.address
+    self.hub = componentDiscoverLib.discoverProxy(hubAddress, "IO Hub", "iohub")
 
     self.stateMachine.data.challengeOutputs = nil
     self.stateMachine.data.craftFailCount = 0
     self.stateMachine.data.time = computer.uptime()
     self.stateMachine.data.notifyLongIdle = false
     self.stateMachine.data.notifyLongEndTime = false
-
-    self:fillDatabase(self.magmatterMode and "Magmatter" or "Gluon")
-    self:clearInterfaceConfigs(self.outputMeInterfaceProxy)
-    self:clearInterfaceConfigs(self.mainMeInterfaceProxy)
 
     ---Idle state is the default state where we loop and check for challengeOutputs to trigger the solving challenge state
     self.stateMachine.states.idle = self.stateMachine:createState("Idle")
@@ -207,16 +188,32 @@ function heliofusionExoticizerController:new(
       end
     end
     self.stateMachine.states.idle.update = function()
+      if self.database.get(2) == nil then
+        event.push("log_warning", "Database is empty, filling it before being able to solve any challenge")
+        self.stateMachine:setState(self.stateMachine.states.fillingDatabase)
+        return
+      end
+
       local items, itemsCount = self:getChallengeOutputs()
       local diff = math.ceil(computer.uptime() - self.stateMachine.data.time)
 
       if itemsCount >= (self.magmatterMode == true and 3 or 7) then
         self.stateMachine.data.challengeOutputs = items
+
+        self:clearOutputs()
+
         self.stateMachine:setState(self.stateMachine.states.solvingChallenge)
       elseif diff > 240 and self.stateMachine.data.notifyLongIdle == false then
         self.stateMachine.data.notifyLongIdle = true
         event.push("log_warning", "More than four minutes in the idle state: "..diff)
       end
+    end
+
+    ---Filling Database state is where we fill the database with all the possible plasmas to be able to request them later when solving the challengeOutputs
+    self.stateMachine.states.fillingDatabase = self.stateMachine:createState("Filling Database")
+    self.stateMachine.states.fillingDatabase.init = function()
+      self:fillDatabase(self.magmatterMode)
+      self.stateMachine:setState(self.stateMachine.states.idle)
     end
 
     ---The Solving Challenge state is where we solve the challenge by requesting the right inputs to send to the Plasma Fabricator
@@ -269,34 +266,82 @@ function heliofusionExoticizerController:new(
   end
 
   ---Fill database with all possible plasmas depending on mode
+  ---@param isMagmatterMode boolean true for magmatter mode, false for gluon mode
   ---@private
-  function obj:fillDatabase(mode)
+  function obj:fillDatabase(isMagmatterMode)
     -- Leaving one space at the beginning of the database for other future usage
     local databaseIndex = 2
+    local index = 1
+    local mode = isMagmatterMode == true and "Magmatter" or "Gluon"
+    local possibleInputsSolved = 0
 
-    for key, value in pairs(plasmaList[mode]) do
-      local result = self.database.set(databaseIndex, "ae2fc:fluid_drop", 0, "{Fluid:\""..value.."\"}")
+    while possibleInputsSolved < #possibleInputs[mode] do
+      local result = self.database.set(databaseIndex, "gregtech:gt.metaitem.01", index)
 
-      if result == false then
-        error("Cant save "..key.." to database")
+      -- if we stored an item, we check it against the possibleInputs list to match it with one of the plasmas based on the fluid_name
+      if result == true then
+        local storedItem = self.database.get(databaseIndex)
+        for k, v in pairs(possibleInputs[mode]) do
+          if storedItem ~= nil and storedItem.fluid_name == v then
+            possibleInputsSolved = possibleInputsSolved + 1
+            self.possibleInputsList[k] = {databaseIndex = databaseIndex, fluid = v}
+            break
+          end
+        end
       end
 
-      self.plasmaList[key] = {databaseIndex = databaseIndex, fluid = value}
-
-      databaseIndex = databaseIndex + 1
+      index = index + 1
     end
   end
 
-  ---Clear ME interface configs
-  ---@param interfaceProxy table
+  ---Move items from a source to a destination
+  ---@param label string
+  ---@param sourceProxy table
+  ---@param sourceSide number
+  ---@param destinationSide number
+  ---@param amount number
+  ---@param isFluid boolean
+  ---@return boolean
+  ---@return integer
   ---@private
-  function obj:clearInterfaceConfigs(interfaceProxy)
-    for i = 1, 9, 1 do
-      interfaceProxy.setInterfaceConfiguration(i)
-      if i >= 6 then
-        interfaceProxy.setFluidInterfaceConfiguration(i)
-      end
+  function obj:transferItemsOrFluids(label, sourceProxy, sourceSide, destinationSide, amount, isFluid)
+    local amountMoved = 0
+
+    if isFluid == true then
+      event.push("log_info", "Transferring "..amount.."L of "..label.." from side "..sourceSide.." to side "..destinationSide)
+      sourceProxy.setFluidInterfaceConfiguration(0, self.database.address, self.possibleInputsList[label].databaseIndex)
+    else
+      event.push("log_info", "Transferring "..amount.." of "..label.." from side "..sourceSide.." to side "..destinationSide)
+      sourceProxy.setInterfaceConfiguration(1, self.database.address, self.possibleInputsList[label].databaseIndex, 64)
     end
+
+    local result = true
+    while amountMoved < amount do
+      local transferredAmount = 0
+      local amountToRequest = amount - amountMoved
+      if isFluid == true then
+        local fluidInTank = self.transposerProxy.getFluidInTank(sourceSide, 1)
+        if fluidInTank == nil then
+          result = false
+          break
+        end
+
+        local _, tAmount = self.transposerProxy.transferFluid(sourceSide, destinationSide, amountToRequest, 0)
+        transferredAmount = tAmount
+      else
+        local stackInSlot = self.transposerProxy.getStackInSlot(sourceSide, 1)
+        if stackInSlot == nil then
+          result = false
+          break
+        end
+
+        transferredAmount = self.transposerProxy.transferItem(sourceSide, destinationSide, amountToRequest, 1)
+      end
+
+      amountMoved = amountMoved + transferredAmount
+    end
+
+    return result, amountMoved
   end
 
   ---Solve the challenge with the right plasmas
@@ -310,7 +355,10 @@ function heliofusionExoticizerController:new(
     for key, value in pairs(outputs) do
       local amountToRequest = 0
       local ingotsOfPlasmaPerDust = 9
+      local litersPerIngotOfPlasma = 144
       local litersOfPlasmaPerFluid = 1000
+
+      event.push("log_info", "Processing "..value.count.." of "..value.label.." from challenge outputs")
 
       -- We only need to calculate the amount of dust required in magmatter mode, for the rest we just need to send the challengeOutputs given to the plasma fabricator
       if self.magmatterMode == true and (key ~= "Spatially Enlarged Fluid" and key ~= "Tachyon Rich Temporal Fluid") then
@@ -318,21 +366,22 @@ function heliofusionExoticizerController:new(
       elseif value.isLiquid == true then
         amountToRequest = value.count * litersOfPlasmaPerFluid
       else
-        amountToRequest = value.count * ingotsOfPlasmaPerDust
+        amountToRequest = value.count * ingotsOfPlasmaPerDust * litersPerIngotOfPlasma
       end
 
-      if self.plasmaList[value.label] ~= nil then
-        event.push("log_info", "Requesting "..amountToRequest.." of "..value.label.." from Main AE network")
-        -- We're done, empty out the output subnet so the next challenge can start
-        -- Configure outputMeInterfaceAddress to stock those fluids/items and their count value to be sent to the plasma fabricator.
-        -- then use transposerAddress to move them into the plasmaInputInterfaceAddress from both the main net to plasma net
-        os.sleep(30)
+      if self.possibleInputsList[value.label] ~= nil then
+        local amountMoved = self.hub.requestFluids(self.database.address, self.possibleInputsList[value.label].databaseIndex, amountToRequest)
+
+        if amountMoved ~= amountToRequest then
+          error("Failed to request "..value.label..": "..tostring(amountMoved).." moved out of "..tostring(amountToRequest))
+        end
       else
         return false, index - 1
       end
 
       index = index + 1
     end
+
 
     return true, index - 1
   end
@@ -350,38 +399,41 @@ function heliofusionExoticizerController:new(
     local count = 0
 
     for _, value in pairs(items) do
-      event.push("log_debug", "Found "..value.size.." of "..value.label.." in output ME network")
+      event.push("log_info", "Found "..value.size.." of "..value.label.." in output ME network")
 
-      local label = value.label:match("Pile of%s(.+)%sDust")
+      -- normalize label to remove the " Dust" suffix for easier handling later
+      local label = value.label:match("(.+) Dust")
 
-      if label == nil then
-        label = value.label:match("(.+) Dust")
-      end
-
-      if label == nil then
-        outputs[value.label] = {label = value.label, count = value.size, isLiquid = false}
-      else
-        outputs[label] = {label = label, count = value.size, isLiquid = false}
-      end
+      outputs[value.label] = {label = label, count = value.size, isLiquid = false}
 
       count = count + 1
     end
 
     for _, value in pairs(liquids) do
-      event.push("log_debug", "Found "..value.amount.." of "..value.label.." in output ME network")
+      event.push("log_info", "Found "..value.amount.." of "..value.label.." in output ME network")
 
-      local label = value.label:match("^(.-)%s?[Gg]?[Aa]?[Ss]?$")
-
-      if label == nil then
-        outputs[value.label] = {label = value.label, count = value.amount, isLiquid = true}
-      else
-        outputs[label] = {label = label, count = value.amount, isLiquid = true}
-      end
+      outputs[value.label] = {label = value.label, count = value.amount, isLiquid = true}
 
       count = count + 1
     end
 
     return outputs, count
+  end
+
+  ---Clear output ae by move items in input ae
+  ---@private
+  function obj:clearOutputs()
+    for i = 1, 3, 1 do
+      self.transposerProxy.transferItem(self.outputMeDriveSide, self.mainIoPortSide, 1)
+    end
+
+    while self.transposerProxy.getSlotStackSize(self.mainIoPortSide, 9) ~= 1 do
+      os.sleep(0.1)
+    end
+
+    for i = 1, 3, 1 do
+      self.transposerProxy.transferItem(self.mainIoPortSide, self.outputMeDriveSide, 1)
+    end
   end
 
   setmetatable(obj, self)
