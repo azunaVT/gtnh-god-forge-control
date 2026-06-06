@@ -212,7 +212,14 @@ function heliofusionExoticizerController:new(
     ---Filling Database state is where we fill the database with all the possible plasmas to be able to request them later when solving the challengeOutputs
     self.stateMachine.states.fillingDatabase = self.stateMachine:createState("Filling Database")
     self.stateMachine.states.fillingDatabase.init = function()
-      self:fillDatabase(self.magmatterMode)
+      self:fillDatabase()
+
+      if self.database.get(2) == nil then
+        self.stateMachine.data.errorMessage = "Failed to fill the database with possible inputs, cannot solve any challenge"
+        self.stateMachine:setState(self.stateMachine.states.error)
+        return
+      end
+
       self.stateMachine:setState(self.stateMachine.states.idle)
     end
 
@@ -266,16 +273,16 @@ function heliofusionExoticizerController:new(
   end
 
   ---Fill database with all possible plasmas depending on mode
-  ---@param isMagmatterMode boolean true for magmatter mode, false for gluon mode
   ---@private
-  function obj:fillDatabase(isMagmatterMode)
+  function obj:fillDatabase()
     -- Leaving one space at the beginning of the database for other future usage
     local databaseIndex = 2
     local index = 1
-    local mode = isMagmatterMode == true and "Magmatter" or "Gluon"
+    local mode = self.magmatterMode == true and "Magmatter" or "Gluon"
     local possibleInputsSolved = 0
+    local totalPossibleInputs = self.magmatterMode == true and 16 or 80
 
-    while possibleInputsSolved < #possibleInputs[mode] do
+    while possibleInputsSolved < totalPossibleInputs do
       local result = self.database.set(databaseIndex, "gregtech:gt.metaitem.01", index)
 
       -- if we stored an item, we check it against the possibleInputs list to match it with one of the plasmas based on the fluid_name
