@@ -18,103 +18,103 @@ local componentDiscoverLib = require("lib.component-discover-lib")
 ---@type table<"Gluon"|"Magmatter", string[]>
 local possibleInputs = {
   ["Gluon"] = {
-    ["Aluminium"] = "plasma.aluminium",
-    ["Americium"] = "plasma.americium",
-    ["Antimony"] = "plasma.antimony",
-    ["Ardite"] = "plasma.ardite",
-    ["Argon"] = "plasma.argon",
-    ["Arsenic"] = "plasma.arsenic",
-    ["Barium"] = "plasma.barium",
-    ["Beryllium"] = "plasma.beryllium",
-    ["Cadmium"] = "plasma.cadmium",
-    ["Caesium"] = "plasma.caesium",
-    ["Calcium"] = "plasma.calcium",
-    ["Carbon"] = "plasma.carbon",
-    ["Cerium"] = "plasma.cerium",
-    ["Chlorine"] = "plasma.chlorine",
-    ["Cobalt"] = "plasma.cobalt",
-    ["Copper"] = "plasma.copper",
-    ["Curium"] = "plasma.curium",
-    ["Desh"] = "plasma.desh",
-    ["Deuterium"] = "plasma.deuterium",
-    ["Dysprosium"] = "plasma.dysprosium",
-    ["Erbium"] = "plasma.erbium",
-    ["Europium"] = "plasma.europium",
-    ["Fluorine"] = "plasma.fluorine",
-    ["Gadolinium"] = "plasma.gadolinium",
-    ["Gallium"] = "plasma.gallium",
-    ["Germanium"] = "plasma.germanium",
-    ["Gold"] = "plasma.gold",
-    ["Hafnium"] = "plasma.hafnium",
-    ["Helium"] = "plasma.helium",
-    ["Holmium"] = "plasma.holmium",
-    ["Hydrogen"] = "plasma.hydrogen",
-    ["Indium"] = "plasma.indium",
-    ["Iodine"] = "plasma.iodine",
-    ["Iron"] = "plasma.iron",
-    ["Lanthanum"] = "plasma.lanthanum",
-    ["Lithium"] = "plasma.lithium",
-    ["Lutetium"] = "plasma.lutetium",
-    ["Magnesium"] = "plasma.magnesium",
-    ["Manganese"] = "plasma.manganese",
-    ["Mercury"] = "plasma.mercury",
-    ["Meteoric Iron"] = "plasma.meteoriciron",
-    ["Molybdenum"] = "plasma.molybdenum",
-    ["Neodymium"] = "plasma.neodymium",
-    ["Nickel"] = "plasma.nickel",
-    ["Niobium"] = "plasma.niobium",
-    ["Nitrogen"] = "plasma.nitrogen",
-    ["Oriharukon"] = "plasma.oriharukon",
-    ["Palladium"] = "plasma.palladium",
-    ["Phosphorus"] = "plasma.phosphorus",
-    ["Potassium"] = "plasma.potassium",
-    ["Praseodymium"] = "plasma.praseodymium",
-    ["Promethium"] = "plasma.promethium",
-    ["Radon"] = "plasma.radon",
-    ["Raw Silicon"] = "plasma.silicon",
-    ["Rhenium"] = "plasma.rhenium",
-    ["Rhodium"] = "plasma.rhodium",
-    ["Rubidium"] = "plasma.rubidium",
-    ["Ruthenium"] = "plasma.ruthenium",
-    ["Samarium"] = "plasma.samarium",
-    ["Silver"] = "plasma.silver",
-    ["Sodium"] = "plasma.sodium",
-    ["Strontium"] = "plasma.strontium",
-    ["Sulfur"] = "plasma.sulfur",
-    ["Tantalum"] = "plasma.tantalum",
-    ["Tellurium"] = "plasma.tellurium",
-    ["Terbium"] = "plasma.terbium",
-    ["Thallium"] = "plasma.thallium",
-    ["Thorium 232"] = "plasma.thorium232",
-    ["Thulium"] = "plasma.thulium",
-    ["Tin"] = "plasma.tin",
-    ["Titanium"] = "plasma.titanium",
-    ["Tritium"] = "plasma.tritium",
-    ["Tungsten"] = "plasma.tungsten",
-    ["Uranium 235"] = "plasma.uranium235",
-    ["Uranium 238"] = "plasma.uranium",
-    ["Vanadium"] = "plasma.vanadium",
-    ["Ytterbium"] = "plasma.ytterbium",
-    ["Yttrium"] = "plasma.yttrium",
-    ["Zinc"] = "plasma.zinc",
-    ["Zirconium"] = "plasma.zirconium"
+    ["Aluminium"] = "plasma.Aluminium",
+    ["Americium"] = "plasma.Americium",
+    ["Antimony"] = "plasma.Antimony",
+    ["Ardite"] = "plasma.Ardite",
+    ["Argon"] = "plasma.Argon",
+    ["Arsenic"] = "plasma.Arsenic",
+    ["Barium"] = "plasma.Barium",
+    ["Beryllium"] = "plasma.Beryllium",
+    ["Cadmium"] = "plasma.Cadmium",
+    ["Caesium"] = "plasma.Caesium",
+    ["Calcium"] = "plasma.Calcium",
+    ["Carbon"] = "plasma.Carbon",
+    ["Cerium"] = "plasma.Cerium",
+    ["Chlorine"] = "plasma.Chlorine",
+    ["Cobalt"] = "plasma.Cobalt",
+    ["Copper"] = "plasma.Copper",
+    ["Curium"] = "plasma.Curium",
+    ["Desh"] = "plasma.Desh",
+    ["Deuterium"] = "plasma.Deuterium",
+    ["Dysprosium"] = "plasma.Dysprosium",
+    ["Erbium"] = "plasma.Erbium",
+    ["Europium"] = "plasma.Europium",
+    ["Fluorine"] = "plasma.Fluorine",
+    ["Gadolinium"] = "plasma.Gadolinium",
+    ["Gallium"] = "plasma.Gallium",
+    ["Germanium"] = "plasma.Germanium",
+    ["Gold"] = "plasma.Gold",
+    ["Hafnium"] = "plasma.Hafnium",
+    ["Helium"] = "plasma.Helium",
+    ["Holmium"] = "plasma.Holmium",
+    ["Hydrogen"] = "plasma.Hydrogen",
+    ["Indium"] = "plasma.Indium",
+    ["Iodine"] = "plasma.Iodine",
+    ["Iron"] = "plasma.Iron",
+    ["Lanthanum"] = "plasma.Lanthanum",
+    ["Lithium"] = "plasma.Lithium",
+    ["Lutetium"] = "plasma.Lutetium",
+    ["Magnesium"] = "plasma.Magnesium",
+    ["Manganese"] = "plasma.Manganese",
+    ["Mercury"] = "plasma.Mercury",
+    ["Meteoric Iron"] = "plasma.MeteoricIron",
+    ["Molybdenum"] = "plasma.Molybdenum",
+    ["Neodymium"] = "plasma.Neodymium",
+    ["Nickel"] = "plasma.Nickel",
+    ["Niobium"] = "plasma.Niobium",
+    ["Nitrogen"] = "plasma.Nitrogen",
+    ["Oriharukon"] = "plasma.Oriharukon",
+    ["Palladium"] = "plasma.Palladium",
+    ["Phosphorus"] = "plasma.Phosphorus",
+    ["Potassium"] = "plasma.Potassium",
+    ["Praseodymium"] = "plasma.Praseodymium",
+    ["Promethium"] = "plasma.Promethium",
+    ["Radon"] = "plasma.Radon",
+    ["Raw Silicon"] = "plasma.Silicon",
+    ["Rhenium"] = "plasma.Rhenium",
+    ["Rhodium"] = "plasma.Rhodium",
+    ["Rubidium"] = "plasma.Rubidium",
+    ["Ruthenium"] = "plasma.Ruthenium",
+    ["Samarium"] = "plasma.Samarium",
+    ["Silver"] = "plasma.Silver",
+    ["Sodium"] = "plasma.Sodium",
+    ["Strontium"] = "plasma.Strontium",
+    ["Sulfur"] = "plasma.Sulfur",
+    ["Tantalum"] = "plasma.Tantalum",
+    ["Tellurium"] = "plasma.Tellurium",
+    ["Terbium"] = "plasma.Terbium",
+    ["Thallium"] = "plasma.Thallium",
+    ["Thorium 232"] = "plasma.Thorium232",
+    ["Thulium"] = "plasma.Thulium",
+    ["Tin"] = "plasma.Tin",
+    ["Titanium"] = "plasma.Titanium",
+    ["Tritium"] = "plasma.Tritium",
+    ["Tungsten"] = "plasma.Tungsten",
+    ["Uranium 235"] = "plasma.Uranium235",
+    ["Uranium 238"] = "plasma.Uranium",
+    ["Vanadium"] = "plasma.Vanadium",
+    ["Ytterbium"] = "plasma.Ytterbium",
+    ["Yttrium"] = "plasma.Yttrium",
+    ["Zinc"] = "plasma.Zinc",
+    ["Zirconium"] = "plasma.Zirconium"
   },
   ["Magmatter"] = {
-    ["Awakened Draconium"] = "plasma.draconiumawakened",
-    ["Bedrockium"] = "plasma.bedrockium",
-    ["Celestial Tungsten"] = "plasma.celestialtungsten",
-    ["Chromatic Glass"] = "plasma.chromaticglass",
-    ["Cosmic Neutronium"] = "plasma.cosmicneutronium",
-    ["Draconium"] = "plasma.draconium",
-    ["Dragonblood"] = "plasma.dragonblood",
-    ["Flerovium"] = "plasma.flerovium_gt5u",
-    ["Hypogen"] = "plasma.hypogen",
-    ["Ichorium"] = "plasma.ichorium",
-    ["Infinity"] = "plasma.infinity",
-    ["Neutronium"] = "plasma.neutronium",
-    ["Rhugnor"] = "plasma.rhugnor",
-    ["Six-Phased Copper"] = "plasma.sixphasedcopper",
-    ["Tritanium"] = "plasma.tritanium",
+    ["Awakened Draconium"] = "plasma.DraconiumAwakened",
+    ["Bedrockium"] = "plasma.Bedrockium",
+    ["Celestial Tungsten"] = "plasma.CelestialTungsten",
+    ["Chromatic Glass"] = "plasma.ChromaticGlass",
+    ["Cosmic Neutronium"] = "plasma.CosmicNeutronium",
+    ["Draconium"] = "plasma.Draconium",
+    ["Dragonblood"] = "plasma.Dragonblood",
+    ["Flerovium"] = "plasma.Flerovium_gt5u",
+    ["Hypogen"] = "plasma.Hypogen",
+    ["Ichorium"] = "plasma.Ichorium",
+    ["Infinity"] = "plasma.Infinity",
+    ["Neutronium"] = "plasma.Neutronium",
+    ["Rhugnor"] = "plasma.Rhugnor",
+    ["Six-Phased Copper"] = "plasma.SixPhasedCopper",
+    ["Tritanium"] = "plasma.Tritanium",
     ["Spatially Enlarged Fluid"] = "spatialfluid",
     ["Tachyon Rich Temporal Fluid"] = "temporalfluid"
   }
@@ -212,15 +212,79 @@ function heliofusionExoticizerController:new(
     ---Filling Database state is where we fill the database with all the possible plasmas to be able to request them later when solving the challengeOutputs
     self.stateMachine.states.fillingDatabase = self.stateMachine:createState("Filling Database")
     self.stateMachine.states.fillingDatabase.init = function()
-      self:fillDatabase()
+      self.possibleInputsSolved = 0
 
-      if self.database.get(2) == nil then
-        self.stateMachine.data.errorMessage = "Failed to fill the database with possible inputs, cannot solve any challenge"
-        self.stateMachine:setState(self.stateMachine.states.error)
-        return
+      -- Leave the first slot empty.
+      self.nextDatabaseIndex = 2
+
+      -- Start the damageIndex at 31k, this is where the plasmas starts for gregtech metaitems, this needs to be tweaked in the future.
+      self.damageIndex = 31000
+
+      self.maxRetries = 100
+      self.retries = 0
+
+      -- Try to solve some of the GT++ plasmas first, since they're predictable, this should only be done once
+      local mode = self.magmatterMode == true and "Magmatter" or "Gluon"
+      for plasmaName, _ in pairs(possibleInputs[mode]) do
+        local normalizedPlasmaName = string.gsub(plasmaName, "[ -]", "")
+        local result = self.database.set(self.nextDatabaseIndex, "miscutils:itemCellPlasma"..normalizedPlasmaName, 0)
+
+        if result == true then
+          self.possibleInputsSolved = self.possibleInputsSolved + 1
+          self.possibleInputsList[plasmaName] = {databaseIndex = self.nextDatabaseIndex, fluid = "plasma."..normalizedPlasmaName}
+          self.nextDatabaseIndex = self.nextDatabaseIndex + 1
+          event.push("log_info", "Added "..plasmaName.." to database. "..self.possibleInputsSolved.."/"..self.totalPossibleInputs)
+        end
       end
+    end
+    self.stateMachine.states.fillingDatabase.update = function()
+      local mode = self.magmatterMode == true and "Magmatter" or "Gluon"
+      self.totalPossibleInputs = self.magmatterMode == true and 16 or 80
 
-      self.stateMachine:setState(self.stateMachine.states.idle)
+      -- Solve the remaining plasmas by iterating over damaged gt meta items, we only support .01 items for now, the rest will need to be added manually.
+      if (self.possibleInputsSolved < self.totalPossibleInputs) or (self.retries < self.maxRetries) then
+        local result = self.database.set(self.nextDatabaseIndex, "gregtech:gt.metaitem.01", self.damageIndex)
+
+        if result == true then
+          local storedItem = self.database.get(self.nextDatabaseIndex)
+
+          if storedItem ~= nil and storedItem.label ~= nil then
+            local plasmaName = storedItem.label:match("(.+) Plasma Cell")
+
+            if plasmaName ~= nil and possibleInputs[mode][plasmaName] ~= nil then
+              local normalizedPlasmaName = string.gsub(plasmaName, "[ -]", "")
+
+              self.possibleInputsSolved = self.possibleInputsSolved + 1
+              self.possibleInputsList[plasmaName] = {databaseIndex = self.nextDatabaseIndex, fluid = "plasma."..normalizedPlasmaName}
+              self.nextDatabaseIndex = self.nextDatabaseIndex + 1
+              self.retries = 0
+
+              event.push("log_info", "Added "..plasmaName.." to database. "..self.possibleInputsSolved.."/"..self.totalPossibleInputs)
+            else
+              self.retries = self.retries + 1
+            end
+          end
+        end
+
+        self.damageIndex = self.damageIndex + 1
+      else
+        local foundAllPlasmas = true
+        -- Print the list of missing plasmas that couldn't be added to the database, so they can be added manually if needed
+        for k, v in pairs(possibleInputs[mode]) do
+          if self.possibleInputsList[k] == nil then
+            event.push("log_warning", "Couldn't find plasma "..k.." in the database, it won't be possible to solve challenges requiring it")
+            foundAllPlasmas = false
+          end
+        end
+
+        if foundAllPlasmas == true then
+          event.push("log_info", "Successfully added all possible inputs to the database, moving to Idle state")
+        else
+          error("Couldn't find all plasmas in the database, missing plasmas need to be added manually before being able to solve all challenges")
+        end
+
+        self.stateMachine:setState(self.stateMachine.states.idle)
+      end
     end
 
     ---The Solving Challenge state is where we solve the challenge by requesting the right inputs to send to the Plasma Fabricator
@@ -269,35 +333,6 @@ function heliofusionExoticizerController:new(
   function obj:resetError()
     if self.stateMachine.currentState == self.stateMachine.states.error then
       self.stateMachine:setState(self.stateMachine.states.idle)
-    end
-  end
-
-  ---Fill database with all possible plasmas depending on mode
-  ---@private
-  function obj:fillDatabase()
-    -- Leaving one space at the beginning of the database for other future usage
-    local databaseIndex = 2
-    local index = 1
-    local mode = self.magmatterMode == true and "Magmatter" or "Gluon"
-    local possibleInputsSolved = 0
-    local totalPossibleInputs = self.magmatterMode == true and 16 or 80
-
-    while possibleInputsSolved < totalPossibleInputs do
-      local result = self.database.set(databaseIndex, "gregtech:gt.metaitem.01", index)
-
-      -- if we stored an item, we check it against the possibleInputs list to match it with one of the plasmas based on the fluid_name
-      if result == true then
-        local storedItem = self.database.get(databaseIndex)
-        for k, v in pairs(possibleInputs[mode]) do
-          if storedItem ~= nil and storedItem.fluid_name == v then
-            possibleInputsSolved = possibleInputsSolved + 1
-            self.possibleInputsList[k] = {databaseIndex = databaseIndex, fluid = v}
-            break
-          end
-        end
-      end
-
-      index = index + 1
     end
   end
 
