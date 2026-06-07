@@ -194,6 +194,15 @@ function heliofusionExoticizerController:new(
         return
       end
 
+      if self.database.get(2) ~= nil and self.possibleInputsList[1] == nil then
+        for i = 2, 80 do
+          local storedItem = self.database.get(i)
+          local material = storedItem.label:match("(.+) Plasma Cell")
+          local normalizedPlasmaName = string.lower(string.gsub(material, "[ -]", ""))
+          self.possibleInputsList[material] = {databaseIndex = i, fluid = "plasma."..normalizedPlasmaName}
+        end
+      end
+
       local items, itemsCount = self:getChallengeOutputs()
       local diff = math.ceil(computer.uptime() - self.stateMachine.data.time)
 
@@ -213,6 +222,7 @@ function heliofusionExoticizerController:new(
     self.stateMachine.states.fillingDatabase = self.stateMachine:createState("Filling Database")
     self.stateMachine.states.fillingDatabase.init = function()
       self.possibleInputsSolved = 0
+      self.totalPossibleInputs = self.magmatterMode == true and 16 or 80
 
       -- Leave the first slot empty.
       self.nextDatabaseIndex = 2
@@ -231,7 +241,6 @@ function heliofusionExoticizerController:new(
 
         if result == true then
           self.possibleInputsSolved = self.possibleInputsSolved + 1
-          self.possibleInputsList[plasmaName] = {databaseIndex = self.nextDatabaseIndex, fluid = "plasma."..normalizedPlasmaName}
           self.nextDatabaseIndex = self.nextDatabaseIndex + 1
           event.push("log_info", "Added "..plasmaName.." to database. "..self.possibleInputsSolved.."/"..self.totalPossibleInputs)
         end
@@ -239,7 +248,6 @@ function heliofusionExoticizerController:new(
     end
     self.stateMachine.states.fillingDatabase.update = function()
       local mode = self.magmatterMode == true and "Magmatter" or "Gluon"
-      self.totalPossibleInputs = self.magmatterMode == true and 16 or 80
 
       -- Solve the remaining plasmas by iterating over damaged gt meta items, we only support .01 items for now, the rest will need to be added manually.
       if (self.possibleInputsSolved < self.totalPossibleInputs) or (self.retries < self.maxRetries) then
@@ -255,7 +263,6 @@ function heliofusionExoticizerController:new(
               local normalizedPlasmaName = string.gsub(plasmaName, "[ -]", "")
 
               self.possibleInputsSolved = self.possibleInputsSolved + 1
-              self.possibleInputsList[plasmaName] = {databaseIndex = self.nextDatabaseIndex, fluid = "plasma."..normalizedPlasmaName}
               self.nextDatabaseIndex = self.nextDatabaseIndex + 1
               self.retries = 0
 
@@ -446,7 +453,7 @@ function heliofusionExoticizerController:new(
       -- normalize label to remove the " Dust" suffix for easier handling later
       local label = value.label:match("(.+) Dust")
 
-      outputs[value.label] = {label = label, count = value.size, isLiquid = false}
+      outputs[label] = {label = label, count = value.size, isLiquid = false}
 
       count = count + 1
     end
