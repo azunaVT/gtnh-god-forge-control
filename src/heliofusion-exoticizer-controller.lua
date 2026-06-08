@@ -195,8 +195,11 @@ function heliofusionExoticizerController:new(
       end
 
       if self.database.get(2) ~= nil and self.possibleInputsList[1] == nil then
-        for i = 2, 80 do
+        for i = 2, 81 do
           local storedItem = self.database.get(i)
+
+          if storedItem == nil or storedItem.label == nil then break end
+
           local material = storedItem.label:match("(.+) Plasma Cell")
           local normalizedPlasmaName = string.lower(string.gsub(material, "[ -]", ""))
           self.possibleInputsList[material] = {databaseIndex = i, fluid = "plasma."..normalizedPlasmaName}
@@ -240,9 +243,10 @@ function heliofusionExoticizerController:new(
         local result = self.database.set(self.nextDatabaseIndex, "miscutils:itemCellPlasma"..normalizedPlasmaName, 0)
 
         if result == true then
+          event.push("log_info", "Added "..plasmaName.." to database. "..self.possibleInputsSolved.."/"..self.totalPossibleInputs)
+          self.possibleInputsList[plasmaName] = {databaseIndex = self.nextDatabaseIndex, fluid = "plasma."..normalizedPlasmaName}
           self.possibleInputsSolved = self.possibleInputsSolved + 1
           self.nextDatabaseIndex = self.nextDatabaseIndex + 1
-          event.push("log_info", "Added "..plasmaName.." to database. "..self.possibleInputsSolved.."/"..self.totalPossibleInputs)
         end
       end
     end
@@ -261,12 +265,11 @@ function heliofusionExoticizerController:new(
 
             if plasmaName ~= nil and possibleInputs[mode][plasmaName] ~= nil then
               local normalizedPlasmaName = string.gsub(plasmaName, "[ -]", "")
-
+              event.push("log_info", "Added "..plasmaName.." to database. "..self.possibleInputsSolved.."/"..self.totalPossibleInputs)
+              self.possibleInputsList[plasmaName] = {databaseIndex = self.nextDatabaseIndex, fluid = "plasma."..normalizedPlasmaName}
               self.possibleInputsSolved = self.possibleInputsSolved + 1
               self.nextDatabaseIndex = self.nextDatabaseIndex + 1
               self.retries = 0
-
-              event.push("log_info", "Added "..plasmaName.." to database. "..self.possibleInputsSolved.."/"..self.totalPossibleInputs)
             else
               self.retries = self.retries + 1
             end
@@ -343,56 +346,6 @@ function heliofusionExoticizerController:new(
     end
   end
 
-  ---Move items from a source to a destination
-  ---@param label string
-  ---@param sourceProxy table
-  ---@param sourceSide number
-  ---@param destinationSide number
-  ---@param amount number
-  ---@param isFluid boolean
-  ---@return boolean
-  ---@return integer
-  ---@private
-  function obj:transferItemsOrFluids(label, sourceProxy, sourceSide, destinationSide, amount, isFluid)
-    local amountMoved = 0
-
-    if isFluid == true then
-      event.push("log_info", "Transferring "..amount.."L of "..label.." from side "..sourceSide.." to side "..destinationSide)
-      sourceProxy.setFluidInterfaceConfiguration(0, self.database.address, self.possibleInputsList[label].databaseIndex)
-    else
-      event.push("log_info", "Transferring "..amount.." of "..label.." from side "..sourceSide.." to side "..destinationSide)
-      sourceProxy.setInterfaceConfiguration(1, self.database.address, self.possibleInputsList[label].databaseIndex, 64)
-    end
-
-    local result = true
-    while amountMoved < amount do
-      local transferredAmount = 0
-      local amountToRequest = amount - amountMoved
-      if isFluid == true then
-        local fluidInTank = self.transposerProxy.getFluidInTank(sourceSide, 1)
-        if fluidInTank == nil then
-          result = false
-          break
-        end
-
-        local _, tAmount = self.transposerProxy.transferFluid(sourceSide, destinationSide, amountToRequest, 0)
-        transferredAmount = tAmount
-      else
-        local stackInSlot = self.transposerProxy.getStackInSlot(sourceSide, 1)
-        if stackInSlot == nil then
-          result = false
-          break
-        end
-
-        transferredAmount = self.transposerProxy.transferItem(sourceSide, destinationSide, amountToRequest, 1)
-      end
-
-      amountMoved = amountMoved + transferredAmount
-    end
-
-    return result, amountMoved
-  end
-
   ---Solve the challenge with the right plasmas
   ---@param outputs table<string, OutputItem>
   ---@return boolean
@@ -407,8 +360,6 @@ function heliofusionExoticizerController:new(
       local litersPerIngotOfPlasma = 144
       local litersOfPlasmaPerFluid = 1000
 
-      event.push("log_info", "Processing "..value.count.." of "..value.label.." from challenge outputs")
-
       -- We only need to calculate the amount of dust required in magmatter mode, for the rest we just need to send the challengeOutputs given to the plasma fabricator
       if self.magmatterMode == true and (key ~= "Spatially Enlarged Fluid" and key ~= "Tachyon Rich Temporal Fluid") then
         amountToRequest = math.abs(outputs["Spatially Enlarged Fluid"].count - outputs["Tachyon Rich Temporal Fluid"].count)
@@ -419,12 +370,14 @@ function heliofusionExoticizerController:new(
       end
 
       if self.possibleInputsList[value.label] ~= nil then
+        self.hub.selectTank(index)
         local amountMoved = self.hub.requestFluids(self.database.address, self.possibleInputsList[value.label].databaseIndex, amountToRequest)
 
         if amountMoved ~= amountToRequest then
           error("Failed to request "..value.label..": "..tostring(amountMoved).." moved out of "..tostring(amountToRequest))
         end
       else
+        error("Couldn't find "..value.label.." in the possible inputs list, can't solve the challenge")
         return false, index - 1
       end
 
@@ -448,9 +401,6 @@ function heliofusionExoticizerController:new(
     local count = 0
 
     for _, value in pairs(items) do
-      event.push("log_info", "Found "..value.size.." of "..value.label.." in output ME network")
-
-      -- normalize label to remove the " Dust" suffix for easier handling later
       local label = value.label:match("(.+) Dust")
 
       outputs[label] = {label = label, count = value.size, isLiquid = false}
@@ -459,8 +409,6 @@ function heliofusionExoticizerController:new(
     end
 
     for _, value in pairs(liquids) do
-      event.push("log_info", "Found "..value.amount.." of "..value.label.." in output ME network")
-
       outputs[value.label] = {label = value.label, count = value.amount, isLiquid = true}
 
       count = count + 1
@@ -477,7 +425,7 @@ function heliofusionExoticizerController:new(
     end
 
     while self.transposerProxy.getSlotStackSize(self.mainIoPortSide, 9) ~= 1 do
-      os.sleep(0.1)
+      -- Block until the first slot of the ioport is emptied.
     end
 
     for i = 1, 3, 1 do
